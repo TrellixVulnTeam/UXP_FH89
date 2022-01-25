@@ -1340,20 +1340,18 @@ struct BarrierMethods<JS::Value>
     }
 };
 
-template <class Outer> class MutableValueOperations;
+template <class Wrapper> class MutableValueOperations;
 
 /**
  * A class designed for CRTP use in implementing the non-mutating parts of the
- * Value interface in Value-like classes.  Outer must be a class inheriting
- * ValueOperations<Outer> with a visible get() method returning a const
- * reference to the Value abstracted by Outer.
+ * Value interface in Value-like classes.  Wrapper must be a class inheriting
+ * ValueOperations<Wrapper> with a visible get() method returning a const
+ * reference to the Value abstracted by Wrapper.
  */
-template <class Outer>
-class ValueOperations
+template <class Wrapper>
+class WrappedPtrOperations<JS::Value, Wrapper>
 {
-    friend class MutableValueOperations<Outer>;
-
-    const JS::Value& value() const { return static_cast<const Outer*>(this)->get(); }
+    const JS::Value& value() const { return static_cast<const Wrapper*>(this)->get(); }
 
   public:
     bool isUndefined() const { return value().isUndefined(); }
@@ -1398,83 +1396,86 @@ class ValueOperations
 
 /**
  * A class designed for CRTP use in implementing all the mutating parts of the
- * Value interface in Value-like classes.  Outer must be a class inheriting
- * MutableValueOperations<Outer> with visible get() methods returning const and
- * non-const references to the Value abstracted by Outer.
+ * Value interface in Value-like classes.  Wrapper must be a class inheriting
+ * MutableWrappedPtrOperations<Wrapper> with visible get() methods returning const and
+ * non-const references to the Value abstracted by Wrapper.
  */
-template <class Outer>
-class MutableValueOperations : public ValueOperations<Outer>
+template <class Wrapper>
+class MutableWrappedPtrOperations<JS::Value, Wrapper> : public WrappedPtrOperations<JS::Value, Wrapper>
 {
-  protected:
-    void set(const JS::Value& v) {
-      // Call Outer::set to trigger any barriers.
-      static_cast<Outer*>(this)->set(v);
-    }
+    JS::Value& value() { return static_cast<Wrapper*>(this)->get(); }
 
   public:
-    void setNull() { set(JS::NullValue()); }
-    void setUndefined() { set(JS::UndefinedValue()); }
-    void setInt32(int32_t i) { set(JS::Int32Value(i)); }
-    void setDouble(double d) { set(JS::DoubleValue(d)); }
+    void setNull() { value().setNull(); }
+    void setUndefined() { value().setUndefined(); }
+    void setInt32(int32_t i) { value().setInt32(i); }
+    void setDouble(double d) { value().setDouble(d); }
     void setNaN() { setDouble(JS::GenericNaN()); }
-    void setBoolean(bool b) { set(JS::BooleanValue(b)); }
-    void setMagic(JSWhyMagic why) { set(JS::MagicValue(why)); }
-    void setNumber(uint32_t ui) { set(JS::NumberValue(ui)); }
-    void setNumber(double d) { set(JS::NumberValue(d)); }
-    void setString(JSString* str) { set(JS::StringValue(str)); }
-    void setSymbol(JS::Symbol* sym) { set(JS::SymbolValue(sym)); }
-    void setObject(JSObject& obj) { set(JS::ObjectValue(obj)); }
-    void setObjectOrNull(JSObject* arg) { set(JS::ObjectOrNullValue(arg)); }
-    void setPrivate(void* ptr) { set(JS::PrivateValue(ptr)); }
-    void setPrivateUint32(uint32_t ui) { set(JS::PrivateUint32Value(ui)); }
-    void setPrivateGCThing(js::gc::Cell* cell) { set(JS::PrivateGCThingValue(cell)); }
+    void setBoolean(bool b) { value().setBoolean(b); }
+    void setMagic(JSWhyMagic why) { value().setMagic(why); }
+    void setNumber(uint32_t ui) { value().setNumber(ui); }
+    void setNumber(double d) { value().setNumber(d); }
+    void setString(JSString* str) { this->value().setString(str); }
+    void setSymbol(JS::Symbol* sym) { this->value().setSymbol(sym); }
+    void setObject(JSObject& obj) { this->value().setObject(obj); }
+    void setObjectOrNull(JSObject* arg) { this->value().setObjectOrNull(arg); }
+    void setPrivate(void* ptr) { this->value().setPrivate(ptr); }
+    void setPrivateUint32(uint32_t ui) { this->value().setPrivateUint32(ui); }
+    void setPrivateGCThing(js::gc::Cell* cell) { this->value().setPrivateGCThing(cell); }
 };
 
 /*
  * Augment the generic Heap<T> interface when T = Value with
  * type-querying, value-extracting, and mutating operations.
  */
-template <>
-class HeapBase<JS::Value> : public MutableValueOperations<JS::Heap<JS::Value> >
+template <typename Wrapper>
+class HeapBase<JS::Value, Wrapper> : public WrappedPtrOperations<JS::Value, Wrapper>
 {
-    typedef JS::Heap<JS::Value> Outer;
-
-    friend class ValueOperations<Outer>;
+    void setBarriered(const JS::Value& v) {
+        *static_cast<JS::Heap<JS::Value>*>(this) = v;
+    }
 
   public:
-    void setNumber(uint32_t ui) {
+    void setNull() { setBarriered(JS::NullValue()); }
+    void setUndefined() { setBarriered(JS::UndefinedValue()); }
+    void setInt32(int32_t i) { setBarriered(JS::Int32Value(i)); }
+    void setDouble(double d) { setBarriered(JS::DoubleValue(d)); }
+    void setNaN() { setDouble(JS::GenericNaN()); }
+    void setBoolean(bool b) { setBarriered(JS::BooleanValue(b)); }
+    void setMagic(JSWhyMagic why) { setBarriered(JS::MagicValue(why)); }
+    void setString(JSString* str) { setBarriered(JS::StringValue(str)); }
+    void setSymbol(JS::Symbol* sym) { setBarriered(JS::SymbolValue(sym)); }
+    void setObject(JSObject& obj) { setBarriered(JS::ObjectValue(obj)); }
+    void setPrivateGCThing(js::gc::Cell* cell) { setBarriered(JS::PrivateGCThingValue(cell)); }
+
+    bool setNumber(uint32_t ui) {
         if (ui > JSVAL_INT_MAX) {
-            this->setDouble((double)ui);
+            setDouble((double)ui);
+            return false;
         } else {
-            this->setInt32((int32_t)ui);
+            setInt32((int32_t)ui);
+            return true;
         }
     }
 
-    void setNumber(double d) {
+    bool setNumber(double d) {
         int32_t i;
         if (mozilla::NumberIsInt32(d, &i)) {
-            this->setInt32(i);
-        } else {
-            this->setDouble(d);
+            setInt32(i);
+            return true;
         }
+
+        setDouble(d);
+        return false;
+    }
+
+    void setObjectOrNull(JSObject* arg) {
+        if (arg)
+            setObject(*arg);
+        else
+            setNull();
     }
 };
-
-template <>
-class HandleBase<JS::Value> : public ValueOperations<JS::Handle<JS::Value> >
-{};
-
-template <>
-class MutableHandleBase<JS::Value> : public MutableValueOperations<JS::MutableHandle<JS::Value> >
-{};
-
-template <>
-class RootedBase<JS::Value> : public MutableValueOperations<JS::Rooted<JS::Value> >
-{};
-
-template <>
-class PersistentRootedBase<JS::Value> : public MutableValueOperations<JS::PersistentRooted<JS::Value>>
-{};
 
 /*
  * If the Value is a GC pointer type, convert to that type and call |f| with
