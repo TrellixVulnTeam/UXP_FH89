@@ -259,6 +259,7 @@ template <typename CharT, typename Wrapper>
 class MutableWrappedPtrOperations<JSONParser<CharT>, Wrapper>
   : public WrappedPtrOperations<JSONParser<CharT>, Wrapper>
 {
+  public:
     bool parse(MutableHandleValue vp) {
         return static_cast<Wrapper*>(this)->get().parse(vp);
     }
