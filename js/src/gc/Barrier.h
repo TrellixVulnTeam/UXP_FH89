@@ -353,6 +353,9 @@ class WriteBarrieredBase : public BarrieredBase<T>,
   protected:
     using BarrieredBase<T>::value;
 
+    // WriteBarrieredBase is not directly instantiable.
+    explicit WriteBarrieredBase(const T& v) : BarrieredBase<T>(v) {}
+
   public:
     using ElementType = T;
 
