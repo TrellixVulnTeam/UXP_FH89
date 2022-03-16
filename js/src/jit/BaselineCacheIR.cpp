@@ -9,6 +9,8 @@
 #include "jit/Linker.h"
 #include "jit/SharedICHelpers.h"
 
+#include "jscntxtinlines.h"
+
 #include "jit/MacroAssembler-inl.h"
 
 using namespace js;

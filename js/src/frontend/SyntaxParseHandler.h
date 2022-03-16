@@ -169,7 +169,7 @@ class SyntaxParseHandler
     }
 
   public:
-    SyntaxParseHandler(ExclusiveContext* cx, LifoAlloc& alloc,
+    SyntaxParseHandler(JSContext* cx, LifoAlloc& alloc,
                        TokenStream& tokenStream, Parser<SyntaxParseHandler>* syntaxParser,
                        LazyScript* lazyOuterFunction)
       : lastAtom(nullptr),
@@ -183,7 +183,7 @@ class SyntaxParseHandler
 
     void trace(JSTracer* trc) {}
 
-    Node newName(PropertyName* name, const TokenPos& pos, ExclusiveContext* cx) {
+    Node newName(PropertyName* name, const TokenPos& pos, JSContext* cx) {
         lastAtom = name;
         if (name == cx->names().arguments)
             return NodeUnparenthesizedArgumentsName;
@@ -561,15 +561,15 @@ class SyntaxParseHandler
                node == NodeParenthesizedName;
     }
 
-    bool isArgumentsAnyParentheses(Node node, ExclusiveContext* cx) {
+    bool isArgumentsAnyParentheses(Node node, JSContext* cx) {
         return node == NodeUnparenthesizedArgumentsName || node == NodeParenthesizedArgumentsName;
     }
 
-    bool isEvalAnyParentheses(Node node, ExclusiveContext* cx) {
+    bool isEvalAnyParentheses(Node node, JSContext* cx) {
         return node == NodeUnparenthesizedEvalName || node == NodeParenthesizedEvalName;
     }
 
-    const char* nameIsArgumentsEvalAnyParentheses(Node node, ExclusiveContext* cx) {
+    const char* nameIsArgumentsEvalAnyParentheses(Node node, JSContext* cx) {
         MOZ_ASSERT(isNameAnyParentheses(node),
                    "must only call this method on known names");
 
@@ -580,7 +580,7 @@ class SyntaxParseHandler
         return nullptr;
     }
 
-    bool isAsyncKeyword(Node node, ExclusiveContext* cx) {
+    bool isAsyncKeyword(Node node, JSContext* cx) {
         return node == NodePotentialAsyncKeyword;
     }
 

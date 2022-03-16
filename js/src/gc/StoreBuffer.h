@@ -332,7 +332,7 @@ class StoreBuffer
 
         explicit operator bool() const { return objectAndKind_ != 0; }
 
-        typedef struct {
+        typedef struct Hasher {
             typedef SlotsEdge Lookup;
             static HashNumber hash(const Lookup& l) { return l.objectAndKind_ ^ l.start_ ^ l.count_; }
             static bool match(const SlotsEdge& k, const Lookup& l) { return k == l; }
@@ -341,7 +341,7 @@ class StoreBuffer
 
     template <typename Buffer, typename Edge>
     void unput(Buffer& buffer, const Edge& edge) {
-        MOZ_ASSERT(!JS::shadow::Runtime::asShadowRuntime(runtime_)->isHeapBusy());
+        MOZ_ASSERT(!JS::CurrentThreadIsHeapBusy());
         MOZ_ASSERT(CurrentThreadCanAccessRuntime(runtime_));
         if (!isEnabled())
             return;
@@ -351,7 +351,7 @@ class StoreBuffer
 
     template <typename Buffer, typename Edge>
     void put(Buffer& buffer, const Edge& edge) {
-        MOZ_ASSERT(!JS::shadow::Runtime::asShadowRuntime(runtime_)->isHeapBusy());
+        MOZ_ASSERT(!JS::CurrentThreadIsHeapBusy());
         MOZ_ASSERT(CurrentThreadCanAccessRuntime(runtime_));
         if (!isEnabled())
             return;

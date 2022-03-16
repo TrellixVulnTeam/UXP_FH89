@@ -2168,7 +2168,6 @@ SetMemoryGCModePrefChangedCallback(const char* aPrefName, void* aClosure)
 {
   bool enableZoneGC = Preferences::GetBool("javascript.options.mem.gc_per_zone");
   bool enableIncrementalGC = Preferences::GetBool("javascript.options.mem.gc_incremental");
-  bool enableGenerationalGC = Preferences::GetBool("javascript.options.mem.gc_generational");
   JSGCMode mode;
   if (enableIncrementalGC) {
     mode = JSGC_MODE_INCREMENTAL;
@@ -2178,7 +2177,6 @@ SetMemoryGCModePrefChangedCallback(const char* aPrefName, void* aClosure)
     mode = JSGC_MODE_GLOBAL;
   }
   JS_SetGCParameter(sContext, JSGC_MODE, mode);
-  JS_SetGGCMode(sContext, enableGenerationalGC);
 }
 
 static void

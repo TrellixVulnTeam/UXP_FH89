@@ -119,6 +119,7 @@ class GlobalObject : public NativeObject
         DEBUGGERS,
         INTRINSICS,
         FOR_OF_PIC_CHAIN,
+        MODULE_RESOLVE_HOOK,
         WINDOW_PROXY,
         GLOBAL_THIS_RESOLVED,
 
@@ -770,7 +771,7 @@ class GlobalObject : public NativeObject
                                       unsigned nargs, MutableHandleValue funVal);
 
     bool hasRegExpStatics() const;
-    static RegExpStatics* getRegExpStatics(ExclusiveContext* cx,
+    static RegExpStatics* getRegExpStatics(JSContext* cx,
                                            Handle<GlobalObject*> global);
     RegExpStatics* getAlreadyCreatedRegExpStatics() const;
 
@@ -881,6 +882,19 @@ class GlobalObject : public NativeObject
     }
     void setWindowProxy(JSObject* windowProxy) {
         setReservedSlot(WINDOW_PROXY, ObjectValue(*windowProxy));
+    }
+
+    void setModuleResolveHook(HandleFunction hook) {
+        MOZ_ASSERT(hook);
+        setSlot(MODULE_RESOLVE_HOOK, ObjectValue(*hook));
+    }
+
+    JSFunction* moduleResolveHook() {
+        Value value = getSlotRef(MODULE_RESOLVE_HOOK);
+        if (value.isUndefined())
+            return nullptr;
+
+        return &value.toObject().as<JSFunction>();
     }
 
     // Returns either this global's star-generator function prototype, or null

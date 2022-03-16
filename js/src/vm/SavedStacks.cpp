@@ -724,7 +724,7 @@ JS_PUBLIC_API(SavedFrameResult)
 GetSavedFrameSource(JSContext* cx, HandleObject savedFrame, MutableHandleString sourcep,
                     SavedFrameSelfHosted selfHosted /* = SavedFrameSelfHosted::Include */)
 {
-    AssertHeapIsIdle(cx);
+    js::AssertHeapIsIdle();
     CHECK_REQUEST(cx);
     MOZ_RELEASE_ASSERT(cx->compartment());
 
@@ -743,7 +743,7 @@ JS_PUBLIC_API(SavedFrameResult)
 GetSavedFrameLine(JSContext* cx, HandleObject savedFrame, uint32_t* linep,
                   SavedFrameSelfHosted selfHosted /* = SavedFrameSelfHosted::Include */)
 {
-    AssertHeapIsIdle(cx);
+    js::AssertHeapIsIdle();
     CHECK_REQUEST(cx);
     MOZ_RELEASE_ASSERT(cx->compartment());
     MOZ_ASSERT(linep);
@@ -763,7 +763,7 @@ JS_PUBLIC_API(SavedFrameResult)
 GetSavedFrameColumn(JSContext* cx, HandleObject savedFrame, uint32_t* columnp,
                     SavedFrameSelfHosted selfHosted /* = SavedFrameSelfHosted::Include */)
 {
-    AssertHeapIsIdle(cx);
+    js::AssertHeapIsIdle();
     CHECK_REQUEST(cx);
     MOZ_RELEASE_ASSERT(cx->compartment());
     MOZ_ASSERT(columnp);
@@ -783,7 +783,7 @@ JS_PUBLIC_API(SavedFrameResult)
 GetSavedFrameFunctionDisplayName(JSContext* cx, HandleObject savedFrame, MutableHandleString namep,
                                  SavedFrameSelfHosted selfHosted /* = SavedFrameSelfHosted::Include */)
 {
-    AssertHeapIsIdle(cx);
+    js::AssertHeapIsIdle();
     CHECK_REQUEST(cx);
     MOZ_RELEASE_ASSERT(cx->compartment());
 
@@ -802,7 +802,7 @@ JS_PUBLIC_API(SavedFrameResult)
 GetSavedFrameAsyncCause(JSContext* cx, HandleObject savedFrame, MutableHandleString asyncCausep,
                         SavedFrameSelfHosted unused_ /* = SavedFrameSelfHosted::Include */)
 {
-    AssertHeapIsIdle(cx);
+    js::AssertHeapIsIdle();
     CHECK_REQUEST(cx);
     MOZ_RELEASE_ASSERT(cx->compartment());
 
@@ -829,7 +829,7 @@ JS_PUBLIC_API(SavedFrameResult)
 GetSavedFrameAsyncParent(JSContext* cx, HandleObject savedFrame, MutableHandleObject asyncParentp,
                          SavedFrameSelfHosted selfHosted /* = SavedFrameSelfHosted::Include */)
 {
-    AssertHeapIsIdle(cx);
+    js::AssertHeapIsIdle();
     CHECK_REQUEST(cx);
     MOZ_RELEASE_ASSERT(cx->compartment());
 
@@ -862,7 +862,7 @@ JS_PUBLIC_API(SavedFrameResult)
 GetSavedFrameParent(JSContext* cx, HandleObject savedFrame, MutableHandleObject parentp,
                     SavedFrameSelfHosted selfHosted /* = SavedFrameSelfHosted::Include */)
 {
-    AssertHeapIsIdle(cx);
+    js::AssertHeapIsIdle();
     CHECK_REQUEST(cx);
     MOZ_RELEASE_ASSERT(cx->compartment());
 
@@ -938,14 +938,14 @@ JS_PUBLIC_API(bool)
 BuildStackString(JSContext* cx, HandleObject stack, MutableHandleString stringp,
                  size_t indent, js::StackFormat format)
 {
-    AssertHeapIsIdle(cx);
+    js::AssertHeapIsIdle();
     CHECK_REQUEST(cx);
     MOZ_RELEASE_ASSERT(cx->compartment());
 
     js::StringBuffer sb(cx);
 
     if (format == js::StackFormat::Default)
-        format = cx->stackFormat();
+        format = cx->runtime()->stackFormat();
     MOZ_ASSERT(format != js::StackFormat::Default);
 
     // Enter a new block to constrain the scope of possibly entering the stack's

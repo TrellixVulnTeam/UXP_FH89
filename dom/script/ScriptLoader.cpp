@@ -797,20 +797,25 @@ ScriptLoader::StartFetchingModuleAndDependencies(ModuleLoadRequest* aParent,
 }
 
 // 8.1.3.8.1 HostResolveImportedModule(referencingModule, specifier)
-JSObject*
-HostResolveImportedModule(JSContext* aCx, JS::Handle<JSObject*> aModule,
-                          JS::Handle<JSString*> aSpecifier)
+bool
+HostResolveImportedModule(JSContext* aCx, unsigned argc, JS::Value* vp)
 {
+
+  MOZ_ASSERT(argc == 2);
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+  JS::Rooted<JSObject*> module(aCx, &args[0].toObject());
+  JS::Rooted<JSString*> specifier(aCx, args[1].toString());
+
   // Let referencing module script be referencingModule.[[HostDefined]].
-  JS::Value value = JS::GetModuleHostDefinedField(aModule);
+  JS::Value value = JS::GetModuleHostDefinedField(module);
   auto script = static_cast<ModuleScript*>(value.toPrivate());
-  MOZ_ASSERT(script->ModuleRecord() == aModule);
+  MOZ_ASSERT(script->ModuleRecord() == module);
 
   // Let url be the result of resolving a module specifier given referencing
   // module script and specifier.
   nsAutoJSString string;
-  if (!string.init(aCx, aSpecifier)) {
-    return nullptr;
+  if (!string.init(aCx, specifier)) {
+    return false;
   }
 
   nsCOMPtr<nsIURI> uri = ResolveModuleSpecifier(script, string);
@@ -821,25 +826,30 @@ HostResolveImportedModule(JSContext* aCx, JS::Handle<JSObject*> aModule,
 
   // Let resolved module script be moduleMap[url]. (This entry must exist for us
   // to have gotten to this point.)
-
   ModuleScript* ms = script->Loader()->GetFetchedModule(uri);
   MOZ_ASSERT(ms, "Resolved module not found in module map");
 
   MOZ_ASSERT(!ms->HasParseError());
-  MOZ_ASSERT(ms->ModuleRecord());
 
-  return ms->ModuleRecord();
+  *vp = JS::ObjectValue(*ms->ModuleRecord());
+  return true;
 }
 
 static void
 EnsureModuleResolveHook(JSContext* aCx)
 {
-  JSRuntime* rt = JS_GetRuntime(aCx);
-  if (JS::GetModuleResolveHook(rt)) {
+  if (JS::GetModuleResolveHook(aCx)) {
     return;
   }
 
-  JS::SetModuleResolveHook(rt, HostResolveImportedModule);
+  JS::Rooted<JSFunction*> func(aCx);
+  func = JS_NewFunction(aCx, HostResolveImportedModule, 2, 0,
+                        "HostResolveImportedModule");
+  if (!func) {
+    return;
+  }
+
+  JS::SetModuleResolveHook(aCx, func);
 }
 
 void

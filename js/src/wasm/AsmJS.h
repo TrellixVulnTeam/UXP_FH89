@@ -22,7 +22,6 @@
 
 namespace js {
 
-class ExclusiveContext;
 namespace frontend {
     template <typename ParseHandler> class Parser;
     class ParseContext;
@@ -39,7 +38,7 @@ typedef frontend::Parser<frontend::FullParseHandler> AsmJSParser;
 // beginning.
 
 extern MOZ_MUST_USE bool
-CompileAsmJS(ExclusiveContext* cx, AsmJSParser& parser, frontend::ParseNode* stmtList,
+CompileAsmJS(JSContext* cx, AsmJSParser& parser, frontend::ParseNode* stmtList,
              bool* validated);
 
 // asm.js module/export queries:

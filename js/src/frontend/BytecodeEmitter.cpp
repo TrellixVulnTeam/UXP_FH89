@@ -902,7 +902,7 @@ BytecodeEmitter::EmitterScope::enterLexical(BytecodeEmitter* bce, ScopeKind kind
     updateFrameFixedSlots(bce, bi);
 
     // Create and intern the VM scope.
-    auto createScope = [kind, bindings, firstFrameSlot](ExclusiveContext* cx,
+    auto createScope = [kind, bindings, firstFrameSlot](JSContext* cx,
                                                         HandleScope enclosing)
     {
         return LexicalScope::create(cx, kind, bindings, firstFrameSlot, enclosing);
@@ -956,7 +956,7 @@ BytecodeEmitter::EmitterScope::enterNamedLambda(BytecodeEmitter* bce, FunctionBo
     bi++;
     MOZ_ASSERT(!bi, "There should be exactly one binding in a NamedLambda scope");
 
-    auto createScope = [funbox](ExclusiveContext* cx, HandleScope enclosing) {
+    auto createScope = [funbox](JSContext* cx, HandleScope enclosing) {
         ScopeKind scopeKind =
             funbox->strict() ? ScopeKind::StrictNamedLambda : ScopeKind::NamedLambda;
         return LexicalScope::create(cx, scopeKind, funbox->namedLambdaBindings(),
@@ -1012,7 +1012,7 @@ BytecodeEmitter::EmitterScope::enterParameterExpressionVar(BytecodeEmitter* bce)
 
     // Create and intern the VM scope.
     uint32_t firstFrameSlot = frameSlotStart();
-    auto createScope = [firstFrameSlot](ExclusiveContext* cx, HandleScope enclosing) {
+    auto createScope = [firstFrameSlot](JSContext* cx, HandleScope enclosing) {
         return VarScope::create(cx, ScopeKind::ParameterExpressionVar,
                                 /* data = */ nullptr, firstFrameSlot,
                                 /* needsEnvironment = */ true, enclosing);
@@ -1106,7 +1106,7 @@ BytecodeEmitter::EmitterScope::enterFunction(BytecodeEmitter* bce, FunctionBox* 
     }
 
     // Create and intern the VM scope.
-    auto createScope = [funbox](ExclusiveContext* cx, HandleScope enclosing) {
+    auto createScope = [funbox](JSContext* cx, HandleScope enclosing) {
         RootedFunction fun(cx, funbox->function());
         return FunctionScope::create(cx, funbox->functionScopeBindings(),
                                      funbox->hasParameterExprs,
@@ -1160,7 +1160,7 @@ BytecodeEmitter::EmitterScope::enterFunctionExtraBodyVar(BytecodeEmitter* bce, F
         fallbackFreeNameLocation_ = Some(NameLocation::Dynamic());
 
     // Create and intern the VM scope.
-    auto createScope = [funbox, firstFrameSlot](ExclusiveContext* cx, HandleScope enclosing) {
+    auto createScope = [funbox, firstFrameSlot](JSContext* cx, HandleScope enclosing) {
         return VarScope::create(cx, ScopeKind::FunctionBodyVar,
                                 funbox->extraVarScopeBindings(), firstFrameSlot,
                                 funbox->needsExtraBodyVarEnvironmentRegardlessOfBindings(),
@@ -1228,7 +1228,7 @@ BytecodeEmitter::EmitterScope::enterGlobal(BytecodeEmitter* bce, GlobalSharedCon
         // lazily upon first access.
         fallbackFreeNameLocation_ = Some(NameLocation::Intrinsic());
 
-        auto createScope = [](ExclusiveContext* cx, HandleScope enclosing) {
+        auto createScope = [](JSContext* cx, HandleScope enclosing) {
             MOZ_ASSERT(!enclosing);
             return &cx->global()->emptyGlobalScope();
         };
@@ -1261,7 +1261,7 @@ BytecodeEmitter::EmitterScope::enterGlobal(BytecodeEmitter* bce, GlobalSharedCon
     else
         fallbackFreeNameLocation_ = Some(NameLocation::Dynamic());
 
-    auto createScope = [globalsc](ExclusiveContext* cx, HandleScope enclosing) {
+    auto createScope = [globalsc](JSContext* cx, HandleScope enclosing) {
         MOZ_ASSERT(!enclosing);
         return GlobalScope::create(cx, globalsc->scopeKind(), globalsc->bindings);
     };
@@ -1283,7 +1283,7 @@ BytecodeEmitter::EmitterScope::enterEval(BytecodeEmitter* bce, EvalSharedContext
 
     // Create the `var` scope. Note that there is also a lexical scope, created
     // separately in emitScript().
-    auto createScope = [evalsc](ExclusiveContext* cx, HandleScope enclosing) {
+    auto createScope = [evalsc](JSContext* cx, HandleScope enclosing) {
         ScopeKind scopeKind = evalsc->strict() ? ScopeKind::StrictEval : ScopeKind::Eval;
         return EvalScope::create(cx, scopeKind, evalsc->bindings, enclosing);
     };
@@ -1371,7 +1371,7 @@ BytecodeEmitter::EmitterScope::enterModule(BytecodeEmitter* bce, ModuleSharedCon
     }
 
     // Create and intern the VM scope.
-    auto createScope = [modulesc](ExclusiveContext* cx, HandleScope enclosing) {
+    auto createScope = [modulesc](JSContext* cx, HandleScope enclosing) {
         return ModuleScope::create(cx, modulesc->bindings, modulesc->module(), enclosing);
     };
     if (!internBodyScope(bce, createScope))
@@ -1391,7 +1391,7 @@ BytecodeEmitter::EmitterScope::enterWith(BytecodeEmitter* bce)
     // 'with' make all accesses dynamic and unanalyzable.
     fallbackFreeNameLocation_ = Some(NameLocation::Dynamic());
 
-    auto createScope = [](ExclusiveContext* cx, HandleScope enclosing) {
+    auto createScope = [](JSContext* cx, HandleScope enclosing) {
         return WithScope::create(cx, enclosing);
     };
     if (!internScope(bce, createScope))
@@ -3612,17 +3612,17 @@ BytecodeEmitter::maybeSetSourceMap()
 }
 
 void
-BytecodeEmitter::tellDebuggerAboutCompiledScript(ExclusiveContext* cx)
+BytecodeEmitter::tellDebuggerAboutCompiledScript(JSContext* cx)
 {
     // Note: when parsing off thread the resulting scripts need to be handed to
     // the debugger after rejoining to the main thread.
-    if (!cx->isJSContext())
+    if (cx->helperThread())
         return;
 
     // Lazy scripts are never top level (despite always being invoked with a
     // nullptr parent), and so the hook should never be fired.
     if (emitterMode != LazyFunction && !parent) {
-        Debugger::onNewScript(cx->asJSContext(), script);
+        Debugger::onNewScript(cx, script);
     }
 }
 
@@ -6431,7 +6431,7 @@ BytecodeEmitter::emitAssignment(ParseNode* lhs, JSOp op, ParseNode* rhs)
 }
 
 bool
-ParseNode::getConstantValue(ExclusiveContext* cx, AllowConstantObjects allowObjects,
+ParseNode::getConstantValue(JSContext* cx, AllowConstantObjects allowObjects,
                             MutableHandleValue vp, Value* compare, size_t ncompare,
                             NewObjectKind newKind)
 {
@@ -9253,7 +9253,7 @@ BytecodeEmitter::emitDeleteExpression(ParseNode* node)
 }
 
 static const char *
-SelfHostedCallFunctionName(JSAtom* name, ExclusiveContext* cx)
+SelfHostedCallFunctionName(JSAtom* name, JSContext* cx)
 {
     if (name == cx->names().callFunction)
         return "callFunction";
@@ -11185,7 +11185,7 @@ BytecodeEmitter::emitTreeInBranch(ParseNode* pn,
 }
 
 static bool
-AllocSrcNote(ExclusiveContext* cx, SrcNotesVector& notes, unsigned* index)
+AllocSrcNote(JSContext* cx, SrcNotesVector& notes, unsigned* index)
 {
     size_t oldLength = notes.length();
 

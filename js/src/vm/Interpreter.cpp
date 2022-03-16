@@ -357,14 +357,14 @@ Interpret(JSContext* cx, RunState& state);
 InterpreterFrame*
 InvokeState::pushInterpreterFrame(JSContext* cx)
 {
-    return cx->runtime()->interpreterStack().pushInvokeFrame(cx, args_, construct_);
+    return cx->interpreterStack().pushInvokeFrame(cx, args_, construct_);
 }
 
 InterpreterFrame*
 ExecuteState::pushInterpreterFrame(JSContext* cx)
 {
-    return cx->runtime()->interpreterStack().pushExecuteFrame(cx, script_, newTargetValue_,
-                                                              envChain_, evalInFrame_);
+    return cx->interpreterStack().pushExecuteFrame(cx, script_, newTargetValue_,
+                                                   envChain_, evalInFrame_);
 }
 // MSVC with PGO inlines a lot of functions in RunScript, resulting in large
 // stack frames and stack overflow issues, see bug 1167883. Turn off PGO to
@@ -378,7 +378,7 @@ js::RunScript(JSContext* cx, RunState& state)
     JS_CHECK_RECURSION(cx, return false);
 
     // Since any script can conceivably GC, make sure it's safe to do so.
-    cx->runtime()->gc.verifyIsSafeToGC();
+    cx->verifyIsSafeToGC();
 
     if (!Debugger::checkNoExecute(cx, state.script()))
         return false;
@@ -1974,7 +1974,7 @@ CASE(JSOP_LOOPENTRY)
             // Pop the SPS frame pushed by the interpreter.  (The compiled version of the
             // function popped a copy of the frame pushed by the OSR trampoline.)
             if (wasSPS)
-                cx->runtime()->spsProfiler.exit(script, script->functionNonDelazifying());
+                cx->runtime()->spsProfiler().exit(script, script->functionNonDelazifying());
 
             if (activation.entryFrame() != REGS.fp())
                 goto jit_return_pop_frame;
@@ -2925,7 +2925,7 @@ CASE(JSOP_SPREADNEW)
 CASE(JSOP_SPREADCALL)
 CASE(JSOP_SPREADSUPERCALL)
     if (REGS.fp()->hasPushedSPSFrame())
-        cx->runtime()->spsProfiler.updatePC(script, REGS.pc);
+        cx->runtime()->spsProfiler().updatePC(script, REGS.pc);
     /* FALL THROUGH */
 
 CASE(JSOP_SPREADEVAL)
@@ -2971,7 +2971,7 @@ CASE(JSOP_SUPERCALL)
 CASE(JSOP_FUNCALL)
 {
     if (REGS.fp()->hasPushedSPSFrame())
-        cx->runtime()->spsProfiler.updatePC(script, REGS.pc);
+        cx->runtime()->spsProfiler().updatePC(script, REGS.pc);
 
     MaybeConstruct construct = MaybeConstruct(*REGS.pc == JSOP_NEW || *REGS.pc == JSOP_SUPERCALL);
     bool ignoresReturnValue = *REGS.pc == JSOP_CALL_IGNORES_RV;
@@ -3348,7 +3348,7 @@ CASE(JSOP_GETALIASEDVAR)
 #ifdef DEBUG
     // Only the .this slot can hold the TDZ MagicValue.
     if (IsUninitializedLexical(val)) {
-        PropertyName* name = EnvironmentCoordinateName(cx->caches.envCoordinateNameCache,
+        PropertyName* name = EnvironmentCoordinateName(cx->caches().envCoordinateNameCache,
                                                        script, REGS.pc);
         MOZ_ASSERT(name == cx->names().dotThis);
         JSOp next = JSOp(*GetNextPc(REGS.pc));
@@ -5122,7 +5122,7 @@ js::ReportRuntimeLexicalError(JSContext* cx, unsigned errorNumber,
         name = script->getName(pc);
     } else {
         MOZ_ASSERT(IsAliasedVarOp(op));
-        name = EnvironmentCoordinateName(cx->caches.envCoordinateNameCache, script, pc);
+        name = EnvironmentCoordinateName(cx->caches().envCoordinateNameCache, script, pc);
     }
 
     ReportRuntimeLexicalError(cx, errorNumber, name);

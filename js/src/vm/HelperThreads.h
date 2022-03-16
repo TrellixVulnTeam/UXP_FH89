@@ -129,6 +129,9 @@ class GlobalHelperThreadState
 
     void lock();
     void unlock();
+#ifdef DEBUG
+    bool isLockedByCurrentThread();
+#endif
 
     enum CondVar {
         // For notifying threads waiting for work that they may be able to make progress.
@@ -289,7 +292,6 @@ HelperThreadState()
 /* Individual helper thread, one allocated per core. */
 struct HelperThread
 {
-    mozilla::Maybe<PerThreadData> threadData;
     mozilla::Maybe<Thread> thread;
 
     /*
@@ -497,7 +499,7 @@ struct AutoEnqueuePendingParseTasksAfterGC {
 
 /* Start a compression job for the specified token. */
 bool
-StartOffThreadCompression(ExclusiveContext* cx, SourceCompressionTask* task);
+StartOffThreadCompression(JSContext* cx, SourceCompressionTask* task);
 
 class MOZ_RAII AutoLockHelperThreadState : public LockGuard<Mutex>
 {
@@ -532,7 +534,7 @@ class MOZ_RAII AutoUnlockHelperThreadState : public UnlockGuard<Mutex>
 struct ParseTask
 {
     ParseTaskKind kind;
-    ExclusiveContext* cx;
+    JSContext* cx;
     OwningCompileOptions options;
     const char16_t* chars;
     size_t length;
@@ -559,7 +561,7 @@ struct ParseTask
     bool overRecursed;
     bool outOfMemory;
 
-    ParseTask(ParseTaskKind kind, ExclusiveContext* cx, JSObject* exclusiveContextGlobal,
+    ParseTask(ParseTaskKind kind, JSContext* cx, JSObject* exclusiveContextGlobal,
               JSContext* initCx, const char16_t* chars, size_t length,
               JS::OffThreadCompileCallback callback, void* callbackData);
     bool init(JSContext* cx, const ReadOnlyCompileOptions& options);
@@ -579,7 +581,7 @@ struct ParseTask
 
 struct ScriptParseTask : public ParseTask
 {
-    ScriptParseTask(ExclusiveContext* cx, JSObject* exclusiveContextGlobal,
+    ScriptParseTask(JSContext* cx, JSObject* exclusiveContextGlobal,
                     JSContext* initCx, const char16_t* chars, size_t length,
                     JS::OffThreadCompileCallback callback, void* callbackData);
     void parse() override;
@@ -587,7 +589,7 @@ struct ScriptParseTask : public ParseTask
 
 struct ModuleParseTask : public ParseTask
 {
-    ModuleParseTask(ExclusiveContext* cx, JSObject* exclusiveContextGlobal,
+    ModuleParseTask(JSContext* cx, JSObject* exclusiveContextGlobal,
                     JSContext* initCx, const char16_t* chars, size_t length,
                     JS::OffThreadCompileCallback callback, void* callbackData);
     void parse() override;
@@ -611,7 +613,7 @@ struct SourceCompressionTask
 
   private:
     // Context from the triggering thread. Don't use this off thread!
-    ExclusiveContext* cx;
+    JSContext* cx;
 
     ScriptSource* ss;
 
@@ -629,7 +631,7 @@ struct SourceCompressionTask
     mozilla::Maybe<SharedImmutableString> resultString;
 
   public:
-    explicit SourceCompressionTask(ExclusiveContext* cx)
+    explicit SourceCompressionTask(JSContext* cx)
       : helperThread(nullptr)
       , cx(cx)
       , ss(nullptr)

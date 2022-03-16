@@ -467,9 +467,9 @@ class ScriptSource
         if (--refs == 0)
             js_delete(this);
     }
-    bool initFromOptions(ExclusiveContext* cx, const ReadOnlyCompileOptions& options,
+    bool initFromOptions(JSContext* cx, const ReadOnlyCompileOptions& options,
                          mozilla::Maybe<uint32_t> parameterListEnd = mozilla::Nothing());
-    bool setSourceCopy(ExclusiveContext* cx,
+    bool setSourceCopy(JSContext* cx,
                        JS::SourceBufferHolder& srcBuf,
                        SourceCompressionTask* tok);
     void setSourceRetrievable() { sourceRetrievable_ = true; }
@@ -514,13 +514,13 @@ class ScriptSource
     void addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf,
                                 JS::ScriptSourceInfo* info) const;
 
-    MOZ_MUST_USE bool setSource(ExclusiveContext* cx,
+    MOZ_MUST_USE bool setSource(JSContext* cx,
                                 mozilla::UniquePtr<char16_t[], JS::FreePolicy>&& source,
                                 size_t length);
     void setSource(SharedImmutableTwoByteString&& string);
 
     MOZ_MUST_USE bool setCompressedSource(
-        ExclusiveContext* cx,
+        JSContext* cx,
         mozilla::UniquePtr<char[], JS::FreePolicy>&& raw,
         size_t rawLength,
         size_t sourceLength);
@@ -530,7 +530,7 @@ class ScriptSource
     template <XDRMode mode>
     bool performXDR(XDRState<mode>* xdr);
 
-    bool setFilename(ExclusiveContext* cx, const char* filename);
+    bool setFilename(JSContext* cx, const char* filename);
     const char* introducerFilename() const {
         return introducerFilename_ ? introducerFilename_.get() : filename_.get();
     }
@@ -546,7 +546,7 @@ class ScriptSource
     }
 
     // Display URLs
-    bool setDisplayURL(ExclusiveContext* cx, const char16_t* displayURL);
+    bool setDisplayURL(JSContext* cx, const char16_t* displayURL);
     bool hasDisplayURL() const { return displayURL_ != nullptr; }
     const char16_t * displayURL() {
         MOZ_ASSERT(hasDisplayURL());
@@ -554,7 +554,7 @@ class ScriptSource
     }
 
     // Source maps
-    bool setSourceMapURL(ExclusiveContext* cx, const char16_t* sourceMapURL);
+    bool setSourceMapURL(JSContext* cx, const char16_t* sourceMapURL);
     bool hasSourceMapURL() const { return sourceMapURL_ != nullptr; }
     const char16_t * sourceMapURL() {
         MOZ_ASSERT(hasSourceMapURL());
@@ -613,7 +613,7 @@ class ScriptSourceObject : public NativeObject
 
     static void trace(JSTracer* trc, JSObject* obj);
     static void finalize(FreeOp* fop, JSObject* obj);
-    static ScriptSourceObject* create(ExclusiveContext* cx, ScriptSource* source);
+    static ScriptSourceObject* create(JSContext* cx, ScriptSource* source);
 
     // Initialize those properties of this ScriptSourceObject whose values
     // are provided by |options|, re-wrapping as necessary.
@@ -709,7 +709,7 @@ class SharedScriptData
     uintptr_t data_[1];
 
   public:
-    static SharedScriptData* new_(ExclusiveContext* cx, uint32_t codeLength,
+    static SharedScriptData* new_(JSContext* cx, uint32_t codeLength,
                                   uint32_t srcnotesLength, uint32_t natoms);
 
     uint32_t refCount() const {
@@ -1051,35 +1051,35 @@ class JSScript : public js::gc::TenuredCell
     //
 
   public:
-    static JSScript* Create(js::ExclusiveContext* cx,
+    static JSScript* Create(JSContext* cx,
                             const JS::ReadOnlyCompileOptions& options,
                             js::HandleObject sourceObject,
                             uint32_t sourceStart, uint32_t sourceEnd,
                             uint32_t toStringStart, uint32_t toStringEnd);
 
-    void initCompartment(js::ExclusiveContext* cx);
+    void initCompartment(JSContext* cx);
 
     // Three ways ways to initialize a JSScript. Callers of partiallyInit()
     // are responsible for notifying the debugger after successfully creating
     // any kind (function or other) of new JSScript.  However, callers of
     // fullyInitFromEmitter() do not need to do this.
-    static bool partiallyInit(js::ExclusiveContext* cx, JS::Handle<JSScript*> script,
+    static bool partiallyInit(JSContext* cx, JS::Handle<JSScript*> script,
                               uint32_t nscopes, uint32_t nconsts, uint32_t nobjects,
                               uint32_t ntrynotes, uint32_t nscopenotes, uint32_t nyieldoffsets,
                               uint32_t nTypeSets);
 
   private:
-    static void initFromFunctionBox(js::ExclusiveContext* cx, js::HandleScript script,
+    static void initFromFunctionBox(JSContext* cx, js::HandleScript script,
                                     js::frontend::FunctionBox* funbox);
-    static void initFromModuleContext(js::ExclusiveContext* cx, js::HandleScript script,
+    static void initFromModuleContext(JSContext* cx, js::HandleScript script,
                                       js::frontend::ModuleSharedContext* modulesc);
 
   public:
-    static bool fullyInitFromEmitter(js::ExclusiveContext* cx, js::HandleScript script,
+    static bool fullyInitFromEmitter(JSContext* cx, js::HandleScript script,
                                      js::frontend::BytecodeEmitter* bce);
 
     // Initialize the Function.prototype script.
-    static bool initFunctionPrototype(js::ExclusiveContext* cx, js::HandleScript script,
+    static bool initFunctionPrototype(JSContext* cx, js::HandleScript script,
                                       JS::HandleFunction functionProto);
 
 #ifdef DEBUG
@@ -1638,9 +1638,9 @@ class JSScript : public js::gc::TenuredCell
   private:
     bool makeTypes(JSContext* cx);
 
-    bool createScriptData(js::ExclusiveContext* cx, uint32_t codeLength, uint32_t srcnotesLength,
+    bool createScriptData(JSContext* cx, uint32_t codeLength, uint32_t srcnotesLength,
                           uint32_t natoms);
-    bool shareScriptData(js::ExclusiveContext* cx);
+    bool shareScriptData(JSContext* cx);
     void freeScriptData();
     void setScriptData(js::SharedScriptData* data);
 
@@ -2034,7 +2034,7 @@ class LazyScript : public gc::TenuredCell
     // Create a LazyScript without initializing the closedOverBindings and the
     // innerFunctions. To be GC-safe, the caller must initialize both vectors
     // with valid atoms and functions.
-    static LazyScript* CreateRaw(ExclusiveContext* cx, HandleFunction fun,
+    static LazyScript* CreateRaw(JSContext* cx, HandleFunction fun,
                                  uint64_t packedData, uint32_t begin, uint32_t end,
                                  uint32_t toStringStart, uint32_t lineno, uint32_t column);
 
@@ -2044,7 +2044,7 @@ class LazyScript : public gc::TenuredCell
 
     // Create a LazyScript and initialize closedOverBindings and innerFunctions
     // with the provided vectors.
-    static LazyScript* Create(ExclusiveContext* cx, HandleFunction fun,
+    static LazyScript* Create(JSContext* cx, HandleFunction fun,
                               const frontend::AtomVector& closedOverBindings,
                               Handle<GCVector<JSFunction*, 8>> innerFunctions,
                               JSVersion version, uint32_t begin, uint32_t end,
@@ -2059,7 +2059,7 @@ class LazyScript : public gc::TenuredCell
     //
     // The enclosingScript and enclosingScope arguments may be null if the
     // enclosing function is also lazy.
-    static LazyScript* Create(ExclusiveContext* cx, HandleFunction fun,
+    static LazyScript* Create(JSContext* cx, HandleFunction fun,
                               HandleScript script, HandleScope enclosingScope,
                               HandleScript enclosingScript,
                               uint64_t packedData, uint32_t begin, uint32_t end,

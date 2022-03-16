@@ -22,7 +22,7 @@ template<XDRMode mode>
 void
 XDRState<mode>::postProcessContextErrors(JSContext* cx)
 {
-    if (cx->isExceptionPending()) {
+    if (!cx->helperThread() && cx->isExceptionPending()) {
         MOZ_ASSERT(resultCode_ == JS::TranscodeResult_Ok);
         resultCode_ = JS::TranscodeResult_Throw;
     }

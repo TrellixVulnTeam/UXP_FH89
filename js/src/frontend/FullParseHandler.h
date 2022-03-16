@@ -96,7 +96,7 @@ class FullParseHandler
                isParenthesizedDestructuringPattern(node);
     }
 
-    FullParseHandler(ExclusiveContext* cx, LifoAlloc& alloc,
+    FullParseHandler(JSContext* cx, LifoAlloc& alloc,
                      TokenStream& tokenStream, Parser<SyntaxParseHandler>* syntaxParser,
                      LazyScript* lazyOuterFunction)
       : allocator(cx, alloc),
@@ -113,7 +113,7 @@ class FullParseHandler
     void prepareNodeForMutation(ParseNode* pn) { return allocator.prepareNodeForMutation(pn); }
     const Token& currentToken() { return tokenStream.currentToken(); }
 
-    ParseNode* newName(PropertyName* name, const TokenPos& pos, ExclusiveContext* cx)
+    ParseNode* newName(PropertyName* name, const TokenPos& pos, JSContext* cx)
     {
         return new_<NameNode>(PNK_NAME, JSOP_GETNAME, name, pos);
     }
@@ -891,15 +891,15 @@ class FullParseHandler
         return node->isKind(PNK_NAME);
     }
 
-    bool isArgumentsAnyParentheses(ParseNode* node, ExclusiveContext* cx) {
+    bool isArgumentsAnyParentheses(ParseNode* node, JSContext* cx) {
         return node->isKind(PNK_NAME) && node->pn_atom == cx->names().arguments;
     }
 
-    bool isEvalAnyParentheses(ParseNode* node, ExclusiveContext* cx) {
+    bool isEvalAnyParentheses(ParseNode* node, JSContext* cx) {
         return node->isKind(PNK_NAME) && node->pn_atom == cx->names().eval;
     }
 
-    const char* nameIsArgumentsEvalAnyParentheses(ParseNode* node, ExclusiveContext* cx) {
+    const char* nameIsArgumentsEvalAnyParentheses(ParseNode* node, JSContext* cx) {
         MOZ_ASSERT(isNameAnyParentheses(node),
                    "must only call this function on known names");
 
@@ -910,7 +910,7 @@ class FullParseHandler
         return nullptr;
     }
 
-    bool isAsyncKeyword(ParseNode* node, ExclusiveContext* cx) {
+    bool isAsyncKeyword(ParseNode* node, JSContext* cx) {
         return node->isKind(PNK_NAME) &&
                node->pn_pos.begin + strlen("async") == node->pn_pos.end &&
                node->pn_atom == cx->names().async;

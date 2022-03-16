@@ -30,7 +30,7 @@
 
 using JS::detail::InitState;
 using JS::detail::libraryInitState;
-using js::FutexRuntime;
+using js::FutexThread;
 
 InitState JS::detail::libraryInitState;
 
@@ -89,8 +89,7 @@ JS::detail::InitWithFailureDiagnostic(bool isDebugBuild)
     CheckMessageParameterCounts();
 #endif
 
-    using js::TlsPerThreadData;
-    RETURN_IF_FAIL(TlsPerThreadData.init());
+    RETURN_IF_FAIL(js::TlsContext.init());
 
 #if defined(DEBUG) || defined(JS_OOM_BREAKPOINT)
     RETURN_IF_FAIL(js::oom::InitThreadType());
@@ -116,7 +115,7 @@ JS::detail::InitWithFailureDiagnostic(bool isDebugBuild)
         return "u_init() failed";
 
     RETURN_IF_FAIL(js::CreateHelperThreadsState());
-    RETURN_IF_FAIL(FutexRuntime::initialize());
+    RETURN_IF_FAIL(FutexThread::initialize());
     RETURN_IF_FAIL(js::gcstats::Statistics::initialize());
 
     libraryInitState = InitState::Running;
@@ -140,7 +139,7 @@ JS_ShutDown(void)
     }
 #endif
 
-    FutexRuntime::destroy();
+    FutexThread::destroy();
 
     js::DestroyHelperThreadsState();
 

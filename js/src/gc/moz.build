@@ -25,6 +25,7 @@ SOURCES += [
     'StoreBuffer.cpp',
     'Tracer.cpp',
     'Zone.cpp',
+    'ZoneGroup.cpp',
 ]
 
 if CONFIG['MOZ_DEBUG']:
