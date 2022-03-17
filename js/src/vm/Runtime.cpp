@@ -184,6 +184,9 @@ JSRuntime::JSRuntime(JSRuntime* parentRuntime)
 bool
 JSRuntime::init(JSContext* cx, uint32_t maxbytes, uint32_t maxNurseryBytes)
 {
+    if (CanUseExtraThreads() && !EnsureHelperThreadsInitialized())
+        return false;
+
     singletonContext = cx;
 
     defaultFreeOp_ = js_new<js::FreeOp>(this);

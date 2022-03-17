@@ -1030,7 +1030,8 @@ class GCParallelTask
     bool isRunning() const;
 
     void runTask() {
-        func_(this);
+        if(func_)
+            func_(this);
     }
 
     // This should be friended to HelperThread, but cannot be because it
