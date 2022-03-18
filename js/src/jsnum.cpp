@@ -338,6 +338,9 @@ js::GetDecimalNonInteger(JSContext* cx, const char16_t* start, const char16_t* e
     }
     chars[i] = 0;
 
+    if (!EnsureDtoaState(cx))
+        return false;
+
     char* ep;
     int err; // unused
     *dp = js_strtod_harder(cx->dtoaState, chars.begin(), &ep, &err);

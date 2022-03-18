@@ -5043,10 +5043,12 @@ GCRuntime::compactPhase(JS::gcreason::Reason reason, SliceBudget& sliceBudget,
 
         MOZ_ASSERT(zone->isGCFinished());
         zone->setGCState(Zone::Compact);
+
         if (relocateArenas(zone, reason, relocatedArenas, sliceBudget))
             updatePointersToRelocatedCells(zone, lock);
-        zone->setGCState(Zone::Finished);
-        zonesToMaybeCompact.ref().removeFront();
+        else
+            zone->setGCState(Zone::Finished);
+
         if (sliceBudget.isOverBudget())
             break;
     }
