@@ -951,12 +951,6 @@ class GCParallelTask
 {
     JSRuntime* runtime_;
 
-  public:
-    using TaskFunc = void (*)(GCParallelTask*);
-
-  private:
-    TaskFunc func_;
-
     // The state of the parallel computation.
     enum TaskState {
         NotStarted,
@@ -974,23 +968,12 @@ class GCParallelTask
     // A flag to signal a request for early completion of the off-thread task.
     mozilla::Atomic<bool> cancel_;
 
-  public:
-    explicit GCParallelTask(JSRuntime* runtime)
-      : runtime_(runtime),
-        state(NotStarted),
-        duration_(0),
-        cancel_(false)
-    {}
-    explicit GCParallelTask(TaskFunc func)
-      : func_(func),
-        state(NotStarted),
-        duration_(0),
-        cancel_(false)
-    {}
+    virtual void run() = 0;
 
+  public:
+    explicit GCParallelTask(JSRuntime* runtime) : runtime_(runtime), state(NotStarted), duration_(0) {}
     GCParallelTask(GCParallelTask&& other)
       : runtime_(other.runtime_),
-        func_(other.func_),
         state(other.state),
         duration_(0),
         cancel_(false)
@@ -1028,11 +1011,6 @@ class GCParallelTask
     // Check if a task is actively running.
     bool isRunningWithLockHeld(const AutoLockHelperThreadState& locked) const;
     bool isRunning() const;
-
-    void runTask() {
-        if(func_)
-            func_(this);
-    }
 
     // This should be friended to HelperThread, but cannot be because it
     // would introduce several circular dependencies.
